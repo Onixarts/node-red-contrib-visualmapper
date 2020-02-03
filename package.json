@@ -1,5 +1,5 @@
 {
-  "name": "node-red-contrib-mapper",
+  "name": "node-red-contrib-visualmapper",
   "description": "Maps input to output value with multiple editable sections and graphical editor.",
   "version": "0.1.0",
   "main": "mapper.js",
@@ -21,14 +21,14 @@
   "engines": {
     "node": ">=8.9.4"
   },
-  "homepage": "https://github.com/Onixarts/node-red-contrib-mapper",
+  "homepage": "https://github.com/Onixarts/node-red-contrib-visualmapper",
   "bugs": {
-    "url": "https://github.com/Onixarts/node-red-contrib-mapper/issues",
+    "url": "https://github.com/Onixarts/node-red-contrib-visualmapper/issues",
     "email": "software@onixarts.pl"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Onixarts/node-red-contrib-mapper"
+    "url": "https://github.com/Onixarts/node-red-contrib-visualmapper"
   },  
   "license": "ISC",
   "node-red": {

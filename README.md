@@ -1,4 +1,4 @@
-# node-red-contrib-mapper
+# node-red-contrib-visualmapper
 Node-red node that maps input to output value with multiple editable sections and graphical editor
 
 ## Overview
