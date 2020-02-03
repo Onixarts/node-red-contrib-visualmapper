@@ -1,0 +1,39 @@
+{
+  "name": "node-red-contrib-mapper",
+  "description": "Maps input to output value with multiple editable sections and graphical editor.",
+  "version": "0.1.0",
+  "main": "mapper.js",
+  "dependencies": {
+    "node-red": ">=1.0.0"
+  },
+  "keywords": [
+    "node-red",
+    "map",
+    "editor",
+    "keyframes",
+    "range"
+  ],
+  "author": {
+    "name": "Bartosz Rosa",
+    "email": "software@onixarts.pl",
+    "url": "https://onixarts.pl"
+  },
+  "engines": {
+    "node": ">=8.9.4"
+  },
+  "homepage": "https://github.com/Onixarts/node-red-contrib-mapper",
+  "bugs": {
+    "url": "https://github.com/Onixarts/node-red-contrib-mapper/issues",
+    "email": "software@onixarts.pl"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Onixarts/node-red-contrib-mapper"
+  },  
+  "license": "ISC",
+  "node-red": {
+    "nodes": {
+      "mapper": "mapper.js"
+    }
+  }
+}

@@ -1,0 +1,393 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/svg.js/3.0.13/svg.min.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    const editorPadding = 10;
+    const keyframeShift = 5;
+    var global = {}
+
+    RED.nodes.registerType('mapper', {
+        category: 'function',
+        color: '#59b1c3',
+        defaults: {
+            name: { value: "" },
+            inputFrom: { value: 0, required: true },
+            inputTo: { value: 100, required: true },
+            outputFrom: { value: 0, required: true },
+            outputTo: { value: 100, required: true },
+            rounding: {value: 0, required: true },
+            inputOutOfRangeStrategy: {value: 'block', required: true},
+            keyframesHash: {value: ''},
+            gridX : {value: 10},
+            gridY: {value: 10},
+            property: {value:"payload", required:true},
+            keyframes: {
+                value: [
+                    {
+                        x: 0,
+                        y: 0,
+                    },
+                    {
+                        x: 1,
+                        y: 1,
+                    },
+
+                ]
+            },
+        },
+        inputs: 1,
+        outputs: 1,
+        icon: "mapper.svg",
+        label: function () {
+            return this.name || "mapper";
+        },
+        labelStyle: function () { return this.name ? "node_label_italic" : ""; },
+        inputLabels: "any message",
+
+        oneditprepare: function () {
+
+            if (this.property === undefined) {
+                $("#node-input-property").val("payload");
+            }
+            $("#node-input-property").typedInput({default:'msg',types:['msg']});
+
+            function interpolateLinear(a, b, x) {
+                return ((b * x) + (a * (1 - x)));
+            };
+
+            function normalize(x, min, max) {
+                if (max == min)
+                    return 0;
+                return (x - min) / (max - min);
+            };
+
+            var n = this;
+            $.when( $.getScript('mapper/js/svg.draggable.js/svg.draggable.min.js')).done(
+                function (data, textStatus, jqxhr) 
+                {
+
+                    var editor = $("#keyframe-editor");
+                    
+
+                    var svg = SVG().addTo("#keyframe-editor").size('100%', '100%');
+                    n.svg = svg;
+                    
+                    var gridGroup = svg.group().addClass('grid-group');;
+                    var linksGroup = svg.group().addClass('links-group');
+                    var keyframesGroup = svg.group().addClass('keyframes-group');
+                    var keyframeId = 0
+
+                    $('#node-input-gridX').on('change keyup paste', 
+                    function()
+                    {
+                        n.gridX = Number($(this).val())
+                        global.draw()
+                    })
+
+                    $('#node-input-gridY').on('change keyup paste', 
+                    function()
+                    {
+                        n.gridY = Number($(this).val())
+                        global.draw()
+                    })
+
+                    draw()
+
+                    function onLinkClick(e)
+                    {
+                        let editorHeight = editor.height();
+                        let editorWidth = editor.width();
+
+                        let link = e.target;
+                        let editorSvg = $("#keyframe-editor svg")[0];
+                        let ownerId = link.instance.data('owner');
+                        let x = e.clientX - editorSvg.getBoundingClientRect().x - keyframeShift;
+                        let y = e.clientY - editorSvg.getBoundingClientRect().y - keyframeShift;
+
+                        let keyframe =
+                        {
+                            x: normalize(x, editorPadding - keyframeShift, editorWidth - editorPadding * 2 + keyframeShift),
+                            y: normalize(y, editorHeight - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift)
+                        }
+
+                        n.keyframes.splice(ownerId, 0, keyframe)
+                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
+                        draw()
+                    }
+
+                    function hash(s) 
+                    {
+                        var hash = 0, i, chr;
+                        if (s.length === 0) return hash;
+                        for (i = 0; i < s.length; i++) {
+                            chr   = s.charCodeAt(i);
+                            hash  = ((hash << 5) - hash) + chr;
+                            hash |= 0;
+                        }
+                        return hash;
+                    };
+
+                    function onKeyframeContextMenu(e)
+                    {
+                        e.preventDefault();
+
+                        var keyframe = e.target
+                        var id = keyframe.instance.data('id');
+                        
+                        //don't remove first and last keyframes
+                        if( id === 0 || id === n.keyframes.length-1)
+                            return
+
+                        n.keyframes.splice(id,1)
+                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
+                        draw()
+                    }
+
+                    function onKeyframeDrag(e) 
+                    {
+                        e.preventDefault();
+                        let editorHeight = editor.height();
+                        let editorWidth = editor.width();
+
+                        const { handler, box } = e.detail;
+                        let { x, y } = box;
+                        let currentKeyframeId = handler.el.data('id')
+
+                        // limit movement to window
+                        if (x < editorPadding - keyframeShift)
+                            x = editorPadding - keyframeShift;
+                        if (y < editorPadding - keyframeShift)
+                            y = editorPadding - keyframeShift;
+                        if (box.x2 > editorWidth - editorPadding + keyframeShift)
+                            x = editorWidth - editorPadding + keyframeShift - box.w;
+                        if (box.y2 > editorHeight - editorPadding + keyframeShift)
+                            y = editorHeight - editorPadding + keyframeShift - box.h;
+
+                        let leftKeyframe = $(`#keyframe-editor g.keyframes-group rect[data-id=${currentKeyframeId-1}]`)[0]
+                        let rightKeyframe = $(`#keyframe-editor g.keyframes-group rect[data-id=${currentKeyframeId+1}]`)[0]
+
+                        // limit first and last keyframe to vertical move only
+                        if (currentKeyframeId === 0)
+                            x = editorPadding - keyframeShift;
+                        else if (currentKeyframeId === n.keyframes.length-1)
+                            x = editorWidth - 2 * editorPadding + keyframeShift;
+                        else 
+                        {
+                            //limit middle keyframes to left and right keyframes
+                            x = Math.max(x,leftKeyframe.instance.x())
+                            x = Math.min(x, rightKeyframe.instance.x())
+                        }
+
+                        //redraw left and right links
+                        let leftLink = $(`#keyframe-editor g.links-group line[data-owner=${currentKeyframeId}]`)[0]
+                        let rightLink = $(`#keyframe-editor g.links-group line[data-owner=${currentKeyframeId+1}]`)[0]
+                            
+                        if (leftLink)
+                            leftLink.instance.plot(leftKeyframe.instance.x() + keyframeShift, leftKeyframe.instance.y() + keyframeShift, x + keyframeShift, y + keyframeShift)
+
+                        if (rightLink)
+                            rightLink.instance.plot(x + keyframeShift, y + keyframeShift, rightKeyframe.instance.x() + keyframeShift, rightKeyframe.instance.y() + keyframeShift);
+                        
+                        let keyframe =
+                        {
+                            x: normalize(x, editorPadding - keyframeShift, editorWidth - editorPadding * 2 + keyframeShift),
+                            y: normalize(y, editorHeight - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift)
+                        }
+                        
+                        n.keyframes[currentKeyframeId] = keyframe
+                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
+
+                        handler.move(x, y)
+                    }
+
+                    function draw()
+                    {
+                        linksGroup.clear()
+                        keyframesGroup.clear()
+                        gridGroup.clear()
+                        keyframeId = 0
+
+                        let editorHeight = editor.height();
+                        let editorWidth = editor.width();
+
+                        gridGroup.rect(editorWidth - editorPadding * 2, editorHeight - editorPadding * 2).move(editorPadding, editorPadding).attr({ stroke: '#666', 'stroke-width': 1, 'fill-opacity': 0.8 });
+                        if(n.gridX > 0)
+                        {
+                            let gridXPadding = (editorWidth - editorPadding * 2) / n.gridX
+                            for(let i = 1; i < n.gridX; i++)
+                            {
+                                gridGroup.line( editorPadding + gridXPadding*i, editorPadding, editorPadding + gridXPadding*i, editorHeight-editorPadding).stroke({color: '#555', width: 1})
+                            }
+                        }
+                        
+                        if(n.gridY > 0)
+                        {
+                            let gridYPadding = (editorHeight - editorPadding * 2) / n.gridY
+                            for(let i = 1; i < n.gridY; i++)
+                            {
+                                gridGroup.line( editorPadding, editorPadding + gridYPadding*i, editorWidth - editorPadding, editorPadding + gridYPadding*i).stroke({color: '#555', width: 1})
+                            }
+                        }                        
+
+                        let previousKeyframe = null
+                        for(let i = 0; i < n.keyframes.length; i++)
+                        {
+                            const x = Math.round(interpolateLinear(editorPadding - keyframeShift, editorWidth - editorPadding * 2 + keyframeShift, n.keyframes[i].x));
+                            const y = Math.round(interpolateLinear(editorHeight - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift, n.keyframes[i].y));
+                            let keyframe = keyframesGroup.rect(keyframeShift*2,keyframeShift*2).attr({fill: '#bbb', x: x, y: y});
+                            keyframe.stroke({color: '#eee', width: 2});
+                        
+                            keyframe.draggable();
+                            keyframe.data('id', keyframeId);
+                            keyframe.on('dragmove.namespace', onKeyframeDrag)
+                            keyframe.on('contextmenu', onKeyframeContextMenu)
+                            
+                            if( i > 0 )
+                            {
+                                let link = linksGroup.line(previousKeyframe.x() + keyframeShift, previousKeyframe.y() + keyframeShift, keyframe.x() + keyframeShift, keyframe.y() + keyframeShift).stroke({ color: '#eee', width: 3 })
+                                link.data('owner', keyframeId);
+                                link.on('click', onLinkClick)
+                            }
+
+                            previousKeyframe = keyframe
+                            keyframeId++
+                        }
+                    }        
+                    global.draw = draw
+                })
+                .fail(function (jqxhr, settings, exception) {
+                    console.log("failed");
+                    console.log(exception);
+                    console.log(exception.stack);
+                });
+        },
+        oneditsave: function () 
+        {
+            var config = this;
+
+            if (config.keyframes.length < 2)
+                config.keyframes = 
+                [
+                    {
+                        x: 0,
+                        y: 0,
+                    },
+                    {
+                        x: 1,
+                        y: 1,
+                    },
+
+                ]
+        },
+        oneditresize: function()
+        {
+            if(global.draw !== undefined )
+                global.draw();
+        }
+
+    });
+</script>
+
+
+
+<script type="text/x-red" data-template-name="mapper">
+
+    <style>
+        #keyframe-editor, #drawing {
+            border: 1px solid #111;
+            background-color: #333;
+            height: 400px;
+            width: 100%;
+            padding: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: auto 80px 0px;
+            grid-template-rows: auto 20px 20px 30px;
+            grid-gap: 4px;
+        }
+
+        .grid input {
+            width: 60px !important;
+            text-align: right;
+        }
+
+    </style>
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-property"><i class="fa fa-ellipsis-h"></i> Property</label>
+        <input type="text" id="node-input-property">
+    </div>
+
+    <div class="form-row">
+        <div class="grid">
+            <div id="keyframe-editor" style="grid-column: 1; grid-row: 1"></div>
+            <div style="grid-row: 1; grid-column: 2; display: flex; justify-content:space-between; flex-direction: column; align-items: start;">
+                <input id="node-input-outputTo">
+                <div>
+                    <div style="transform: rotate(270deg) translateY(-30px)"><i class="fa fa-long-arrow-left" style="transform: scaleX(3) translate(-10px, 21px);"></i>&nbsp;output&nbsp;range&nbsp;<i class="fa fa-long-arrow-right" style="transform: scaleX(3) translate(35px, -20px);"></i></div>
+                    <input style="background-color: #333; color: #999; text-align: center; width: 45px !important; transform: translate(35px, -30px);" id="node-input-gridY">
+                </div>
+                <input id="node-input-outputFrom">
+            </div>
+            
+            <div style="grid-row: 2; grid-column: 1; display: flex; justify-content:space-between; flex-direction: row; align-items: baseline;">
+                <input id="node-input-inputFrom">
+                <div><i class="fa fa-long-arrow-left" style="transform: scaleX(3) translateX(-4px);"></i>&nbsp;input&nbsp;range&nbsp;<i class="fa fa-long-arrow-right" style="transform: scaleX(3) translateX(4px);"></i></div>
+                <input id="node-input-inputTo">
+            </div>
+            <div style="grid-row: 4; grid-column: 1; display: flex; justify-content: center;">
+                <input style="background-color: #333; color: #999; text-align: center; width: 45px !important;" id="node-input-gridX">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-row">
+        <p><i class="fa fa-arrows-h"></i> Input out of range strategy</p>
+        <label for="node-input-name"></label>
+        <select id="node-input-inputOutOfRangeStrategy">
+            <option value="leave">leave unchanged</option>
+            <option value="block">block message</option>
+            <option value="limitKeyframe">limit to keyframes</option>
+            <option value="limitRange">limit to output range</option>
+        </select>
+    </div>    
+
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-dot-circle-o"></i> Rounding</label>
+        <select id="node-input-rounding">
+            <option selected="selected" value="0">1</option>
+            <option value="1">0.1</option>
+            <option value="2">0.01</option>
+            <option value="3">0.001</option>
+            <option value="4">0.0001</option>
+            <option value="5">0.00001</option>
+            <option value="-1">disabled</option>
+        </select>
+    </div>
+
+</script>
+
+<script type="text/x-red" data-help-name="mapper">
+    <p>Maps input to output value with multiple editable sections.</p>
+    <h3>Overview</h3>
+    <p>Mapper performs multi-segment value mapping from one value to another. You can edit map function by drawing it in the editor.</p>
+    <p>To <b>add new keyframe</b> click on the line between two other keyframes with You left mouse button.</p>
+    <p>To <b>remove keyframe</b> click on the keyframe with You right mouse button.</p>
+    <p>You cannot remove first and last keyframes and their positions stick to minimum and maximum input values.</p>
+    <p>You can specify available <b>input range</b> by typing min and max value. If the input value is out of this range the <i>Input out of range strategy</i> will be applied.</p>
+    <ul>
+        <li><b>leave unchanged</b> - value will not be changed</li>
+        <li><b>block message</b> - will not produce any output. The whole message will be blocked.</li>
+        <li><b>limit to keyframes</b> - output value will be limited to corresponding keyframe value.</li>
+        <li><b>limit to output range</b> - output value will be limited to output range values.</li>
+    </ul>
+    <p>The <b>Rounding</b> options apply output truncation to specified decimal digits. For example rounding 3.1415 to 1 produces 3, to 0.1 produces 3.1, 0.01 produces 3.14 and so on. 
+        You can also disable rounding.</p>
+    <p>The editor can be divided to a custom number of grid lines (dark edit controls).</p> 
+</script>
