@@ -71,6 +71,9 @@
                     var svg = SVG().addTo("#keyframe-editor").size('100%', '100%');
                     n.svg = svg;
                     
+                    svg.on('mousemove', onMouseMove)
+                    svg.on('mouseleave', onMouseLeave)
+
                     var gridGroup = svg.group().addClass('grid-group');;
                     var linksGroup = svg.group().addClass('links-group');
                     var keyframesGroup = svg.group().addClass('keyframes-group');
@@ -199,6 +202,32 @@
                         handler.move(x, y)
                     }
 
+                    function onMouseMove(e)
+                    {
+                        let svgEditor = $("#keyframe-editor svg")[0];
+                        let x = e.clientX - svgEditor.getBoundingClientRect().left - keyframeShift;
+                        let y = e.clientY - svgEditor.getBoundingClientRect().top - keyframeShift;
+
+                        let keyframe =
+                        {
+                            x: normalize(x, editorPadding - keyframeShift, editor.width() - editorPadding * 2 + keyframeShift),
+                            y: normalize(y, editor.height() - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift)
+                        }
+
+                        keyframe.x = Math.max(0, Math.min(1, keyframe.x))
+                        keyframe.y = Math.max(0, Math.min(1, keyframe.y))
+
+                        keyframe.x = interpolateLinear(Number($('#node-input-inputFrom').val()), Number($('#node-input-inputTo').val())  ,keyframe.x)
+                        keyframe.y = interpolateLinear(Number($('#node-input-outputFrom').val()), Number($('#node-input-outputTo').val()), keyframe.y)
+
+                        $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}`)
+                    }
+
+                    function onMouseLeave(e)
+                    {
+                        $('#editor-position-tooltip').css({opacity: .0})
+                    }
+
                     function draw()
                     {
                         linksGroup.clear()
@@ -226,8 +255,8 @@
                             {
                                 gridGroup.line( editorPadding, editorPadding + gridYPadding*i, editorWidth - editorPadding, editorPadding + gridYPadding*i).stroke({color: '#555', width: 1})
                             }
-                        }                        
-
+                        }      
+                        
                         let previousKeyframe = null
                         for(let i = 0; i < n.keyframes.length; i++)
                         {
@@ -312,6 +341,17 @@
             text-align: right;
         }
 
+        #editor-position-tooltip {
+            position: absolute; 
+            padding: 4px;
+            background-color: yellow; 
+            border: 1px solid #888; 
+            color: black;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: 5px;
+        }
+
     </style>
 
     <div class="form-row">
@@ -326,7 +366,9 @@
 
     <div class="form-row">
         <div class="grid">
-            <div id="keyframe-editor" style="grid-column: 1; grid-row: 1"></div>
+            <div id="keyframe-editor" style="grid-column: 1; grid-row: 1">
+                <div id="editor-position-tooltip"></div>
+            </div>
             <div style="grid-row: 1; grid-column: 2; display: flex; justify-content:space-between; flex-direction: column; align-items: start;">
                 <input id="node-input-outputTo">
                 <div>
@@ -344,7 +386,7 @@
             <div style="grid-row: 4; grid-column: 1; display: flex; justify-content: center;">
                 <input style="background-color: #333; color: #999; text-align: center; width: 45px !important;" id="node-input-gridX">
             </div>
-        </div>
+        </div>        
     </div>
 
     <div class="form-row">
