@@ -66,7 +66,7 @@ module.exports = function(RED) {
                 }
                 
                 if(node.rounding>=0)
-                    y = y.toFixed(node.rounding)
+                    y = Number(y.toFixed(node.rounding))
 
                 RED.util.setMessageProperty(msg, node.property, y)
 
