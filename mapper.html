@@ -93,6 +93,11 @@
                         global.draw()
                     })
 
+                    $('#node-input-inputFrom').on('change keyup paste', draw)
+                    $('#node-input-inputTo').on('change keyup paste', draw)
+                    $('#node-input-outputFrom').on('change keyup paste', draw)
+                    $('#node-input-outputTo').on('change keyup paste', draw)
+
                     draw()
 
                     function onLinkClick(e)
@@ -225,21 +230,43 @@
                         let editorWidth = editor.width();
 
                         gridGroup.rect(editorWidth - editorPadding * 2, editorHeight - editorPadding * 2).move(editorPadding, editorPadding).attr({ stroke: '#666', 'stroke-width': 1, 'fill-opacity': 0.8 });
+
+                        let inputFrom = Number($('#node-input-inputFrom').val())
+                        let inputTo = Number($('#node-input-inputTo').val())
+                        let outputFrom = Number($('#node-input-outputFrom').val())
+                        let outputTo = Number($('#node-input-outputTo').val())
+                        
                         if(n.gridX > 0)
                         {
+                            let xStep = (inputTo-inputFrom)/n.gridX
+
                             let gridXPadding = (editorWidth - editorPadding * 2) / n.gridX
-                            for(let i = 1; i < n.gridX; i++)
+                            for(let i = 0; i < n.gridX; i++)
                             {
-                                gridGroup.line( editorPadding + gridXPadding*i, editorPadding, editorPadding + gridXPadding*i, editorHeight-editorPadding).stroke({color: '#555', width: 1})
+                                if(i>0)
+                                    gridGroup.line( editorPadding + gridXPadding*i, editorPadding, editorPadding + gridXPadding*i, editorHeight-editorPadding).stroke({color: '#555', width: 1})
+                                
+                                let number = (inputFrom+(xStep*i)).toFixed(1)
+                                if(number.substr(-1) == "0")
+                                    number = number.substr(0, number.indexOf('.'))
+                                gridGroup.text( number ).move(editorPadding + gridXPadding*i + 4, editorHeight - editorPadding - 18).attr({fill: '#555'})
                             }
                         }
                         
                         if(n.gridY > 0)
                         {
+                            let yStep = (outputTo-outputFrom)/n.gridY
+
                             let gridYPadding = (editorHeight - editorPadding * 2) / n.gridY
                             for(let i = 1; i < n.gridY; i++)
                             {
                                 gridGroup.line( editorPadding, editorPadding + gridYPadding*i, editorWidth - editorPadding, editorPadding + gridYPadding*i).stroke({color: '#555', width: 1})
+                                
+                                let number = (outputFrom+(yStep*i)).toFixed(1)
+                                if(number.substr(-1) == "0")
+                                    number = number.substr(0, number.indexOf('.'))
+                                let text = gridGroup.text( number )
+                                text.move(editorWidth - editorPadding - text.bbox().width - 4, editorHeight - editorPadding - gridYPadding*i - 18 ).attr({fill: '#555'})
                             }
                         }      
                         
