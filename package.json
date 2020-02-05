@@ -1,7 +1,7 @@
 {
   "name": "node-red-contrib-visualmapper",
   "description": "Maps input to output value with multiple editable sections and graphical editor.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "mapper.js",
   "dependencies": {
     "node-red": ">=1.0.0"
