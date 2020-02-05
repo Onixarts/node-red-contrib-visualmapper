@@ -113,21 +113,9 @@
                         }
 
                         n.keyframes.splice(ownerId, 0, keyframe)
-                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
+                        
                         draw()
                     }
-
-                    function hash(s) 
-                    {
-                        var hash = 0, i, chr;
-                        if (s.length === 0) return hash;
-                        for (i = 0; i < s.length; i++) {
-                            chr   = s.charCodeAt(i);
-                            hash  = ((hash << 5) - hash) + chr;
-                            hash |= 0;
-                        }
-                        return hash;
-                    };
 
                     function onKeyframeContextMenu(e)
                     {
@@ -141,7 +129,6 @@
                             return
 
                         n.keyframes.splice(id,1)
-                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
                         draw()
                     }
 
@@ -197,7 +184,6 @@
                         }
                         
                         n.keyframes[currentKeyframeId] = keyframe
-                        n.keyframesHash = hash(JSON.stringify(n.keyframes))
 
                         handler.move(x, y)
                     }
@@ -306,6 +292,20 @@
                     },
 
                 ]
+            
+            function hash(s) 
+            {
+                var hash = 0, i, chr;
+                if (s.length === 0) return hash;
+                for (i = 0; i < s.length; i++) {
+                    chr   = s.charCodeAt(i);
+                    hash  = ((hash << 5) - hash) + chr;
+                    hash |= 0;
+                }
+                return hash;
+            }
+
+            config.keyframesHash = hash(JSON.stringify(config.keyframes))
         },
         oneditresize: function()
         {
