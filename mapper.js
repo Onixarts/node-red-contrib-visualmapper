@@ -83,16 +83,13 @@ module.exports = function(RED) {
         {
             let y = x
             let normalizedX = normalize(x, node.inputFrom, node.inputTo);
-            for(var i = 0; i < node.keyframes.length; i++)
+            for(var i = 1; i < node.keyframes.length; i++)
             {
-                if( i === 0 )
-                    continue;
-
                 if( (normalizedX < node.keyframes[i].x) || (( i === node.keyframes.length-1) && normalizedX === node.keyframes[i].x) )
                 {
                     var startKeyframe = node.keyframes[i-1];
                     var endKeyframe = node.keyframes[i];
-                    y = interpolateLinear(startKeyframe.y, endKeyframe.y, normalizedX);
+                    y = interpolateLinear(startKeyframe.y, endKeyframe.y, normalize(normalizedX, startKeyframe.x, endKeyframe.x) );
                     break;
                 }
             }
@@ -114,6 +111,7 @@ module.exports = function(RED) {
                 return 0;
             return (x-min)/(max-min);
         }
+
         function interpolateLinear(a, b, x) {
             return ((b * x)+(a * (1-x)));
         }
