@@ -33,6 +33,7 @@
 
                 ]
             },
+            snapToGrid: {value: false}
         },
         inputs: 1,
         outputs: 1,
@@ -160,6 +161,23 @@
                         let leftKeyframe = $(`#keyframe-editor g.keyframes-group rect[data-id=${currentKeyframeId-1}]`)[0]
                         let rightKeyframe = $(`#keyframe-editor g.keyframes-group rect[data-id=${currentKeyframeId+1}]`)[0]
 
+                        if($("#node-input-snapToGrid").is(':checked'))
+                        {
+                            if(n.gridX > 0)
+                            {
+                                let gridXPadding = (editorWidth - editorPadding * 2) / n.gridX
+                                if(gridXPadding !== 0 )
+                                    x = Math.round(x / gridXPadding) * gridXPadding + keyframeShift;
+                            }
+                            
+                            if(n.gridY > 0)
+                            {
+                                let gridYPadding = (editorHeight - editorPadding * 2) / n.gridY
+                                if( gridYPadding !== 0)
+                                    y = Math.round(y / gridYPadding) * gridYPadding + keyframeShift;
+                            }      
+                        }
+
                         // limit first and last keyframe to vertical move only
                         if (currentKeyframeId === 0)
                             x = editorPadding - keyframeShift;
@@ -208,10 +226,36 @@
                         keyframe.x = Math.max(0, Math.min(1, keyframe.x))
                         keyframe.y = Math.max(0, Math.min(1, keyframe.y))
 
-                        keyframe.x = interpolateLinear(Number($('#node-input-inputFrom').val()), Number($('#node-input-inputTo').val())  ,keyframe.x)
-                        keyframe.y = interpolateLinear(Number($('#node-input-outputFrom').val()), Number($('#node-input-outputTo').val()), keyframe.y)
+                        let inputFrom = Number($('#node-input-inputFrom').val())
+                        let inputTo = Number($('#node-input-inputTo').val())
+                        let outputFrom = Number($('#node-input-inputFrom').val())
+                        let outputTo = Number($('#node-input-inputTo').val())
 
-                        $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}`)
+                        keyframe.x = interpolateLinear(inputFrom, inputTo, keyframe.x)
+                        keyframe.y = interpolateLinear(outputFrom, outputTo, keyframe.y)
+
+                        if($("#node-input-snapToGrid").is(':checked'))
+                        {
+                            let editorHeight = editor.height();
+                            let editorWidth = editor.width();
+
+                            if(n.gridX > 0)
+                            {
+                                let gridXPadding = (inputTo - inputFrom ) / n.gridX
+                                if(gridXPadding !== 0 )
+                                    keyframe.x1 = Math.round(keyframe.x / gridXPadding) * gridXPadding;
+                            }
+                            
+                            if(n.gridY > 0)
+                            {
+                                let gridYPadding = (outputTo - outputFrom) / n.gridY
+                                if( gridYPadding !== 0)
+                                    keyframe.y1 = Math.round(keyframe.y / gridYPadding) * gridYPadding;
+                            }      
+                            $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}<br>[${keyframe.x1.toFixed(2)}, ${keyframe.y1.toFixed(2)}]`)
+                        }
+                        else
+                            $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}`)
                     }
 
                     function onMouseLeave(e)
@@ -389,6 +433,11 @@
     <div class="form-row">
         <label for="node-input-property"><i class="fa fa-ellipsis-h"></i> Property</label>
         <input type="text" id="node-input-property">
+    </div>
+
+    <div class="form-row">
+        <input style="width: auto; display: inline-block; vertical-align: top;"  type="checkbox" id="node-input-snapToGrid">
+        <label style="width: auto;" for="node-input-snapToGrid"> Snap to grid</label>
     </div>
 
     <div class="form-row">
