@@ -67,6 +67,8 @@
                 {
 
                     var editor = $("#keyframe-editor");
+                    let editedKeyframe = null
+                    let editedKeyframeIndex = null
                     
 
                     var svg = SVG().addTo("#keyframe-editor").size('100%', '100%');
@@ -74,6 +76,7 @@
                     
                     svg.on('mousemove', onMouseMove)
                     svg.on('mouseleave', onMouseLeave)
+                    svg.on('click', onEditorMouseClick)
 
                     var gridGroup = svg.group().addClass('grid-group');;
                     var linksGroup = svg.group().addClass('links-group');
@@ -135,6 +138,115 @@
                             return
 
                         n.keyframes.splice(id,1)
+                        draw()
+                    }
+
+                    function onEditorMouseClick(e)
+                    {
+                        if(editedKeyframe != null)
+                        {
+                            editedKeyframe = null
+                            editedKeyframeIndex = null
+                            $('#editor-position-tooltip #editor-x').off('input', onKeyframeEditorChange)
+                            $('#editor-position-tooltip #editor-y').off('input', onKeyframeEditorChange)
+                            onMouseMove(e)
+                            draw()
+                        }
+                    }
+
+                    function onKeyframeDoubleClick(e)
+                    {
+                        console.log(e)
+                        e.preventDefault();
+
+                        var target = e.target
+                        var currentKeyframeId = target.instance.data('id');
+
+                        let keyframe = n.keyframes[currentKeyframeId]
+                        
+                        let {x, y} = normalizedToReal(keyframe.x,keyframe.y)
+
+                        let xBlocked = false
+                        if (currentKeyframeId === 0 || currentKeyframeId === n.keyframes.length-1)
+                            xBlocked = true
+
+                        let rounding = Number($('#node-input-rounding').val())
+                        if(rounding === -1)
+                            rounding = 8
+
+                        $('#editor-position-tooltip').css({left: target.x + 64, top: target.y + 128, opacity: .9}).html(`IN <input type="number" id="editor-x" value="${x.toFixed(rounding)}" ${xBlocked ? 'readonly' : ''}> OUT&nbsp;<input type="number" id="editor-y" value="${y.toFixed(rounding)}">`)
+                        $('#editor-position-tooltip #editor-x').on('input', onKeyframeEditorChange)
+                        $('#editor-position-tooltip #editor-y').on('input', onKeyframeEditorChange)
+                        editedKeyframe = keyframe
+                        editedKeyframeIndex = currentKeyframeId
+                        draw()
+                    }
+
+                    function onKeyframeEditorChange(element)
+                    {
+                        let el = $(element.target)
+                        let inputFrom = Number($('#node-input-inputFrom').val())
+                        let inputTo = Number($('#node-input-inputTo').val())
+                        let outputFrom = Number($('#node-input-outputFrom').val())
+                        let outputTo = Number($('#node-input-outputTo').val())
+                        switch(el[0].id)
+                        {
+                            case 'editor-x':
+                                let x = Number(el.val())
+                               
+                                //limit middle keyframes to left and right keyframes
+                                let leftKeyframe = normalizedToReal(n.keyframes[editedKeyframeIndex-1].x,0)
+                                let rightKeyframe = normalizedToReal(n.keyframes[editedKeyframeIndex+1].x,0)
+
+                                console.log(leftKeyframe.x)
+                                if( x < leftKeyframe.x)
+                                {
+                                    el.addClass('error')
+                                    setTimeout(()=>{$(`#keyframe-editor g.keyframes-group rect[data-id=${editedKeyframeIndex-1}]`).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100)}
+                                        , 100)
+                                        
+                                    x = Math.min(rightKeyframe.x, Math.max(leftKeyframe.x, x))
+                                }
+                                else if( x > rightKeyframe.x)
+                                {
+                                    el.addClass('error')
+                                    setTimeout(()=>{$(`#keyframe-editor g.keyframes-group rect[data-id=${editedKeyframeIndex+1}]`).fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100)}
+                                    , 100)
+
+                                    x = Math.min(rightKeyframe.x, Math.max(leftKeyframe.x, x))
+                                }
+                                else
+                                {
+                                    el.removeClass('error')
+                                }
+                                x = normalize(x, inputFrom, inputTo)
+                                editedKeyframe.x = x
+                            
+
+                            break;
+                            case 'editor-y':
+                                let y = Number(el.val())
+                                if(y < outputFrom || y > outputTo)
+                                {
+                                    el.addClass('error')
+                                    if(y < outputFrom)
+                                        $('#node-input-outputFrom').fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100)
+                                    else if(y > outputTo)
+                                        $('#node-input-outputTo').fadeOut(100).fadeIn(100).fadeOut(100).fadeIn(100)
+                                        
+                                    y = Math.min(outputTo, Math.max(outputFrom, y))
+                                }
+                                else
+                                {
+                                    el.removeClass('error')
+                                }
+
+                                y = normalize(y, outputFrom, outputTo)
+                                editedKeyframe.y = y
+                                
+                                break;
+                        }
+                            
                         draw()
                     }
 
@@ -207,60 +319,59 @@
                         }
                         
                         n.keyframes[currentKeyframeId] = keyframe
-
+                        
+                        displayTooltip(x, y, keyframe.x, keyframe.y)
                         handler.move(x, y)
+                    }
+
+                    function normalizedToReal(normalizedX, normalizedY)
+                    {
+                        let inputFrom = Number($('#node-input-inputFrom').val())
+                        let inputTo = Number($('#node-input-inputTo').val())
+                        let outputFrom = Number($('#node-input-outputFrom').val())
+                        let outputTo = Number($('#node-input-outputTo').val())
+
+                        return {
+                            x: interpolateLinear(inputFrom, inputTo, normalizedX),
+                            y: interpolateLinear(outputFrom, outputTo, normalizedY)
+                        }
+                    }
+
+                    function displayTooltip(posX, posY, normalizedX, normalizedY)
+                    {
+                        let {x, y} = normalizedToReal(normalizedX,normalizedY)
+                        let rounding = Number($('#node-input-rounding').val())
+                        if(rounding === -1)
+                            rounding = 8                                                    
+
+                        $('#editor-position-tooltip').css({left: posX + 48, top: posY + 128, opacity: .9}).html(`${x.toFixed(rounding)}, ${y.toFixed(rounding)}`)
                     }
 
                     function onMouseMove(e)
                     {
-                        let svgEditor = $("#keyframe-editor svg")[0];
-                        let x = e.clientX - svgEditor.getBoundingClientRect().left - keyframeShift;
-                        let y = e.clientY - svgEditor.getBoundingClientRect().top - keyframeShift;
-
-                        let keyframe =
+                        if(editedKeyframe == null)
                         {
-                            x: normalize(x, editorPadding - keyframeShift, editor.width() - editorPadding * 2 + keyframeShift),
-                            y: normalize(y, editor.height() - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift)
-                        }
+                            let svgEditor = $("#keyframe-editor svg")[0];
+                            let x = e.clientX - svgEditor.getBoundingClientRect().left - keyframeShift;
+                            let y = e.clientY - svgEditor.getBoundingClientRect().top - keyframeShift;
 
-                        keyframe.x = Math.max(0, Math.min(1, keyframe.x))
-                        keyframe.y = Math.max(0, Math.min(1, keyframe.y))
-
-                        let inputFrom = Number($('#node-input-inputFrom').val())
-                        let inputTo = Number($('#node-input-inputTo').val())
-                        let outputFrom = Number($('#node-input-inputFrom').val())
-                        let outputTo = Number($('#node-input-inputTo').val())
-
-                        keyframe.x = interpolateLinear(inputFrom, inputTo, keyframe.x)
-                        keyframe.y = interpolateLinear(outputFrom, outputTo, keyframe.y)
-
-                        if($("#node-input-snapToGrid").is(':checked'))
-                        {
-                            let editorHeight = editor.height();
-                            let editorWidth = editor.width();
-
-                            if(n.gridX > 0)
+                            let keyframe =
                             {
-                                let gridXPadding = (inputTo - inputFrom ) / n.gridX
-                                if(gridXPadding !== 0 )
-                                    keyframe.x1 = Math.round(keyframe.x / gridXPadding) * gridXPadding;
+                                x: normalize(x, editorPadding - keyframeShift, editor.width() - editorPadding * 2 + keyframeShift),
+                                y: normalize(y, editor.height() - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift)
                             }
+
+                            keyframe.x = Math.max(0, Math.min(1, keyframe.x))
+                            keyframe.y = Math.max(0, Math.min(1, keyframe.y))
                             
-                            if(n.gridY > 0)
-                            {
-                                let gridYPadding = (outputTo - outputFrom) / n.gridY
-                                if( gridYPadding !== 0)
-                                    keyframe.y1 = Math.round(keyframe.y / gridYPadding) * gridYPadding;
-                            }      
-                            $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}<br>[${keyframe.x1.toFixed(2)}, ${keyframe.y1.toFixed(2)}]`)
+                            displayTooltip(x, y, keyframe.x, keyframe.y)
                         }
-                        else
-                            $('#editor-position-tooltip').css({left: x + 64, top: y + 128, opacity: .9}).html(`${keyframe.x.toFixed(2)}, ${keyframe.y.toFixed(2)}`)
                     }
 
                     function onMouseLeave(e)
                     {
-                        $('#editor-position-tooltip').css({opacity: .0})
+                        if(editedKeyframe == null)
+                            $('#editor-position-tooltip').css({opacity: .0})
                     }
 
                     function draw()
@@ -319,12 +430,18 @@
                         {
                             const x = Math.round(interpolateLinear(editorPadding - keyframeShift, editorWidth - editorPadding * 2 + keyframeShift, n.keyframes[i].x));
                             const y = Math.round(interpolateLinear(editorHeight - editorPadding * 2 + keyframeShift, editorPadding - keyframeShift, n.keyframes[i].y));
-                            let keyframe = keyframesGroup.rect(keyframeShift*2,keyframeShift*2).attr({fill: '#bbb', x: x, y: y});
+                            
+                            let keyframeColor = '#bbb'
+                            if(i === editedKeyframeIndex)
+                                keyframeColor = 'yellow'
+
+                            let keyframe = keyframesGroup.rect(keyframeShift*2,keyframeShift*2).attr({fill: keyframeColor, x: x, y: y});
                             keyframe.stroke({color: '#eee', width: 2});
                         
                             keyframe.draggable();
                             keyframe.data('id', keyframeId);
                             keyframe.on('dragmove.namespace', onKeyframeDrag)
+                            keyframe.on('dblclick', onKeyframeDoubleClick)
                             keyframe.on('contextmenu', onKeyframeContextMenu)
                             
                             if( i > 0 )
@@ -421,12 +538,22 @@
             opacity: 0;
             transition: opacity 0.3s;
             border-radius: 5px;
+            z-index: 100;
+        }
+
+        #editor-x, #editor-y {
+            width: 110px !important;
+        }
+
+        #keyframe-editor .error {
+            background-color: red;
+            color: white;
         }
 
     </style>
 
     <div class="form-row">
-        <label for="node-input-name"><i class="icon-tag"></i> Name</label>
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="Name">
     </div>
 
@@ -488,7 +615,6 @@
             <option value="-1">disabled</option>
         </select>
     </div>
-
 </script>
 
 <script type="text/x-red" data-help-name="mapper">
