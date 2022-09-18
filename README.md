@@ -10,6 +10,8 @@ Mapper performs multi-segment value mapping from one value to another, from inpu
 ## Features
 
 - Graphical editor for mapping function
+- Single keyframe value editing (double click)
+- Init mapping function from available presets
 - Customizable input and output ranges (not only 0..1)
 - Few different input's out of range behaviours
 - Output rounding options
