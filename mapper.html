@@ -46,6 +46,74 @@
 
         oneditprepare: function () {
 
+            const presets = [
+                { name: 'linear', keyframes: [{x:0,y:0}, {x:1,y:1}] },
+                { name: 'linear inverted', keyframes: [{x:0,y:1}, {x:1,y:0}] },
+                { name: 'triangle', keyframes: [{x:0,y:0}, {x:0.5,y:1}, {x:1,y:0}] },
+                { name: 'trapeze', keyframes: [{x:0,y:0}, {x:0.3,y:1},{x:0.7,y:1}, {x:1,y:0}] },
+                { name: 'gausian like', keyframes: [{x:0,y:0},{x:0.2,y:0.05},{x:0.3,y:0.2},{x:0.4,y:0.8},{x:0.45,y:0.95},{x:0.5,y:1},{x:0.55,y:0.95},{x:0.6,y:0.8},{x:0.7,y:0.2},{x:0.8,y:0.05},{x:1,y:0},] },
+                { name: 'impulse', keyframes: [{x:0,y:0}, {x:0.3,y:0},{x:0.3,y:1},{x:0.7,y:1},{x:0.7,y:0}, {x:1,y:0}] },
+                { name: 'treshold', keyframes: [{x:0,y:0}, {x:0.5,y:0},{x:0.5,y:1},{x:1,y:1}] },
+                { name: 'mapper logo', keyframes: [{x:0,y:0},{x:0.2,y:0.8}, {x:0.4,y:0.8},{x:0.7,y:0.2}, {x:1,y:1}] }
+            ]
+
+            const previewHeight = 40
+            const previewWidth = 80
+            var presetsOptionsHtml = '';
+            for(var i = 0; i < presets.length; i++){
+                let linesHtml = '';
+                for(var j=0; j<presets[i].keyframes.length-1; j++)
+                {
+                    const x1 = Math.round(interpolateLinear(0, previewWidth, presets[i].keyframes[j].x));
+                    const y1 = Math.round(interpolateLinear(previewHeight, 0, presets[i].keyframes[j].y));
+                    const x2 = Math.round(interpolateLinear(0, previewWidth, presets[i].keyframes[j+1].x));
+                    const y2 = Math.round(interpolateLinear(previewHeight, 0, presets[i].keyframes[j+1].y));
+
+                    linesHtml += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:#eee;stroke-width:2" />`
+                }
+                presetsOptionsHtml += `<li><a href="#" data-preset-id="${i}">
+                    <svg id="preset-${i}" width="${previewWidth}" height="${previewHeight}" style="border: 5px solid #0a0a0a">
+                        <rect width="100%" height="100%" style="fill: #0a0a0a; "/>
+                        ${linesHtml}
+                    </svg>
+                    <div>
+                        ${presets[i].name}
+                        <br><span>${presets[i].keyframes.length} points</span>
+                    </div>
+                    </a></li>`
+            }
+
+            $('#presets-list').append(presetsOptionsHtml)
+            $('#presets-list a').each(function(){
+                $(this).click(function(){
+                    let presetId = Number($(this).attr('data-preset-id'))
+                    n.keyframes = [...presets[presetId].keyframes]
+
+                    global.draw()
+                    $('#keyframe-editor').focus()
+
+                })
+            })
+
+            var presetsListMenuTracker = function (event) {
+                var e = $(event.target);
+                if (($(e).attr('id') !== 'load-preset') && $(e).parents('#load-preset').length < 1) {
+                    $('#presets-list').css("display", 'none')
+                    $(document).off('click', presetsListMenuTracker)
+                }
+            }
+            $('#load-preset').click(function () {
+                if ($('#presets-list').css("display") === 'none') {
+                    $('#presets-list').css("display", 'block')
+                    $(document).on('click', presetsListMenuTracker)
+                }
+                else {
+                    $('#presets-list').css("display", 'none')
+                    $(document).off('click', presetsListMenuTracker)
+                }
+            })
+
+
             if (this.property === undefined) {
                 $("#node-input-property").val("payload");
             }
@@ -156,7 +224,6 @@
 
                     function onKeyframeDoubleClick(e)
                     {
-                        console.log(e)
                         e.preventDefault();
 
                         var target = e.target
@@ -198,7 +265,6 @@
                                 let leftKeyframe = normalizedToReal(n.keyframes[editedKeyframeIndex-1].x,0)
                                 let rightKeyframe = normalizedToReal(n.keyframes[editedKeyframeIndex+1].x,0)
 
-                                console.log(leftKeyframe.x)
                                 if( x < leftKeyframe.x)
                                 {
                                     el.addClass('error')
@@ -550,6 +616,27 @@
             color: white;
         }
 
+        .preset-container {
+            position: relative;
+        }
+
+        #presets-list a {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        #presets-list a div{
+            width: 200px;
+            margin-left: 16px;
+            font-weight: bold;
+        }
+
+        #presets-list a div span{
+            opacity: 0.6;
+        }
+
     </style>
 
     <div class="form-row">
@@ -565,6 +652,12 @@
     <div class="form-row">
         <input style="width: auto; display: inline-block; vertical-align: top;"  type="checkbox" id="node-input-snapToGrid">
         <label style="width: auto;" for="node-input-snapToGrid"> Snap to grid</label>
+    </div>
+
+    <div class="form-row preset-container">
+        <button id="load-preset"><i class="fa fa-area-chart"></i> Choose preset</button>
+        <ul id="presets-list" class="red-ui-menu-dropdown" style="width: auto !important;">
+        </ul>
     </div>
 
     <div class="form-row">
