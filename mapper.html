@@ -622,8 +622,10 @@
     <h3>Overview</h3>
     <p>Mapper performs multi-segment value mapping from one value to another. You can edit map function by drawing it in the editor.</p>
     <p>To <b>add new keyframe</b> click on the line between two other keyframes with You left mouse button.</p>
-    <p>To <b>remove keyframe</b> click on the keyframe with You right mouse button.</p>
+    <p>To <b>remove keyframe</b> click on the keyframe with the right mouse button.</p>
     <p>You cannot remove first and last keyframes and their positions stick to minimum and maximum input values.</p>
+    <p>To <b>edit specific keyframe values</b> double click on a keyframe</p>
+    <p>Red background indicates that the entered value exceeds one of the constraints values (left or right keyframe on the input axis or min/max value on the output axis)</p>
     <p>You can specify available <b>input range</b> by typing min and max value. If the input value is out of this range the <i>Input out of range strategy</i> will be applied.</p>
     <ul>
         <li><b>leave unchanged</b> - value will not be changed</li>
@@ -631,7 +633,9 @@
         <li><b>limit to keyframes</b> - output value will be limited to corresponding keyframe value.</li>
         <li><b>limit to output range</b> - output value will be limited to output range values.</li>
     </ul>
-    <p>The <b>Rounding</b> options apply output truncation to specified decimal digits. For example rounding 3.1415 to 1 produces 3, to 0.1 produces 3.1, 0.01 produces 3.14 and so on. 
+    <p>The <b>Rounding</b> options apply output truncation to specified decimal digits. For example rounding 3.1415 to 1 produces 3, to 0.1 produces 3.1, 0.01 produces 3.14 and so on.
+        Selected rounding option has an effect on a tooltip and keyframe editor.
         You can also disable rounding.</p>
     <p>The editor can be divided to a custom number of grid lines (dark edit controls).</p> 
+    <p><b>Snap to grid</b> option will do a snapping when keyframe is being dragged</p>
 </script>
