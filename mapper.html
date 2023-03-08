@@ -33,7 +33,8 @@
 
                 ]
             },
-            snapToGrid: {value: false}
+            snapToGrid: {value: false},
+            displayRoundedInput: {value: true}
         },
         inputs: 1,
         outputs: 1,
@@ -241,7 +242,8 @@
                         if(rounding === -1)
                             rounding = 8
 
-                        $('#editor-position-tooltip').css({left: target.x + 64, top: target.y + 128, opacity: .9}).html(`IN <input type="number" id="editor-x" value="${x.toFixed(rounding)}" ${xBlocked ? 'readonly' : ''}> OUT&nbsp;<input type="number" id="editor-y" value="${y.toFixed(rounding)}">`)
+                        let displayRoundedInput = $("#node-input-displayRoundedInput").is(':checked')
+                        $('#editor-position-tooltip').css({left: target.x + 64, top: target.y + 128, opacity: .9}).html(`IN <input type="number" id="editor-x" value="${displayRoundedInput ? x.toFixed(rounding): x}" ${xBlocked ? 'readonly' : ''}> OUT&nbsp;<input type="number" id="editor-y" value="${y.toFixed(rounding)}">`)
                         $('#editor-position-tooltip #editor-x').on('input', onKeyframeEditorChange)
                         $('#editor-position-tooltip #editor-y').on('input', onKeyframeEditorChange)
                         editedKeyframe = keyframe
@@ -410,7 +412,8 @@
                         if(rounding === -1)
                             rounding = 8                                                    
 
-                        $('#editor-position-tooltip').css({left: posX + 48, top: posY + 128, opacity: .9}).html(`${x.toFixed(rounding)}, ${y.toFixed(rounding)}`)
+                        let displayRoundedInput = $("#node-input-displayRoundedInput").is(':checked')
+                        $('#editor-position-tooltip').css({left: posX + 48, top: posY + 128, opacity: .9}).html(`${displayRoundedInput ? x.toFixed(rounding) : x}, ${y.toFixed(rounding)}`)
                     }
 
                     function onMouseMove(e)
@@ -649,9 +652,15 @@
         <input type="text" id="node-input-property">
     </div>
 
-    <div class="form-row">
-        <input style="width: auto; display: inline-block; vertical-align: top;"  type="checkbox" id="node-input-snapToGrid">
-        <label style="width: auto;" for="node-input-snapToGrid"> Snap to grid</label>
+    <div class="form-row" style="display: flex;">
+        <div>
+            <input style="width: auto; display: inline-block; vertical-align: top;"  type="checkbox" id="node-input-snapToGrid">
+            <label style="width: auto;" for="node-input-snapToGrid"> Snap to grid</label>
+        </div>
+        <div style="margin-left: 32px;">
+            <input style="width: auto; display: inline-block; vertical-align: top;"  type="checkbox" id="node-input-displayRoundedInput">
+            <label style="width: auto;" for="node-input-displayRoundedInput"> Display rounded input</label>
+        </div>
     </div>
 
     <div class="form-row preset-container">
@@ -731,4 +740,5 @@
         You can also disable rounding.</p>
     <p>The editor can be divided to a custom number of grid lines (dark edit controls).</p> 
     <p><b>Snap to grid</b> option will do a snapping when keyframe is being dragged</p>
+    <p><b>Display rounded input</b> option will round input value in a tooltip and a keyframe editor window</p>
 </script>
